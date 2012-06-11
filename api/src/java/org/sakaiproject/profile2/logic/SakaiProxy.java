@@ -468,4 +468,17 @@ public interface SakaiProxy {
 	 */
 	public boolean isUserAllowedInSite(String userId, String permission, String siteId);
 	
+
+    /**
+     * Is the profile2.import.images flag set in sakai.properties?
+     * If not set, defaults to false
+     * 
+     * <p>If enabled then at startup profile 2 will attempt to download any profile URLs set 
+     * and upload them as profile images.
+     * </p>
+     * 
+     * @return true or false
+     */
+    public boolean isProfileImageImportEnabled();
+	
 }

@@ -228,6 +228,12 @@
   			<artifactId>sakai-kernel-util</artifactId>
 		</dependency>
 		
+		
+   		<dependency>
+   			<groupId>commons-io</groupId>
+   			<artifactId>commons-io</artifactId>
+   		</dependency>
+   		
 		<!-- legacy dependencies -->
 		<dependency>
 			<groupId>org.sakaiproject.profile</groupId>

@@ -3,6 +3,8 @@ package org.sakaiproject.profile2.logic;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.sql.SQLException;
@@ -14,6 +16,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.hibernate.Hibernate;
@@ -1972,9 +1975,120 @@ public class ProfileLogicImpl extends HibernateDaoSupport implements ProfileLogi
 		if(sakaiProxy.isProfileConversionEnabled()) {
 			convertProfile();
 		}
+		
+		if (sakaiProxy.isProfileImageImportEnabled()) {
+			importProfileImages();
+		}
 	}
 	
-	
+    /**
+     * This imports URL profile images into upload profile images.
+     */
+    public void importProfileImages() {
+        //get list of users
+        List<String> allUsers = new ArrayList<String>(listAllSakaiPersons());
+        
+        if(allUsers.isEmpty()){
+            log.warn("Profile2 image converter: No SakaiPersons to process. Nothing to do!");
+            return;
+        }
+        
+        //for each, do they have a profile image record. if so, skip (perhaps null the SakaiPerson JPEG_PHOTO bytes?)
+        for(Iterator<String> i = allUsers.iterator(); i.hasNext();) {
+            String userUuid = i.next();
+            
+            //if no record, we need to run all conversions
+            if(!hasUploadedProfileImage(userUuid)) {
+                
+                //main
+                ProfileImageExternal externalProfileImage = getExternalImageRecordForUser(userUuid);
+                if (externalProfileImage == null) {
+                    log.info("No existing external profile images for "+ userUuid);
+                } else {
+                    String mainUrl = externalProfileImage.getMainUrl();
+                    if (StringUtils.isNotBlank(mainUrl)) {
+                        retrieveMainImage(userUuid, mainUrl);
+                    } else {
+                        log.info("No URL set for "+ userUuid);
+                    }
+                }
+    
+            }
+        }
+    }
+
+    private void retrieveMainImage(String userUuid, String mainUrl) {
+    	String fileName = "Profile Image";
+        InputStream inputStream = null;
+        try {
+            URL url = new URL(mainUrl);
+            HttpURLConnection openConnection = (HttpURLConnection) url.openConnection();
+            openConnection.setReadTimeout(5000);
+            openConnection.setConnectTimeout(5000);
+            openConnection.setInstanceFollowRedirects(true);
+            openConnection.connect();
+            int responseCode = openConnection.getResponseCode();
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+
+                String mimeType = openConnection.getContentType();
+                inputStream = openConnection.getInputStream();
+                // Convert the image.
+                byte[] sourceImage = IOUtils.toByteArray(inputStream);
+                byte[] imageMain = ProfileUtils.scaleImage(sourceImage, ProfileConstants.MAX_IMAGE_XY);
+
+                //create resource ID
+                String mainResourceId = sakaiProxy.getProfileImageResourcePath(userUuid, ProfileConstants.PROFILE_IMAGE_MAIN);
+                log.info("Profile2 image converter: mainResourceId: " + mainResourceId);
+
+                //save, if error, log and return.
+                if (!sakaiProxy.saveFile(mainResourceId, userUuid, fileName, mimeType, imageMain)) {
+                    log.error("Profile2 image importer: Saving main profile image failed.");
+                } 
+                /*
+				 * THUMBNAIL PROFILE IMAGE
+				 */
+				//scale image
+				byte[] imageThumbnail = ProfileUtils.scaleImage(imageMain, ProfileConstants.MAX_THUMBNAIL_IMAGE_XY);
+				 
+				//create resource ID
+				String thumbnailResourceId = sakaiProxy.getProfileImageResourcePath(userUuid, ProfileConstants.PROFILE_IMAGE_THUMBNAIL);
+
+				log.info("Profile2 conversion util: thumbnailResourceId:" + thumbnailResourceId);
+				
+				//save, if error, log and return.
+				if(!sakaiProxy.saveFile(thumbnailResourceId, userUuid, fileName, mimeType, imageThumbnail)) {
+					log.warn("Profile2 conversion util: Saving thumbnail profile image failed. Main image will be used instead.");
+					thumbnailResourceId = null;
+				}
+
+				/*
+				 * SAVE IMAGE RESOURCE IDS
+				 */
+				if(addNewProfileImage(userUuid, mainResourceId, thumbnailResourceId)) {
+					log.info("Profile2 conversion util: Binary image downloaded from "+ mainUrl+ " converted and saved for " + userUuid);
+				} else {
+					log.warn("Profile2 conversion util: Binary image conversion failed for " + userUuid);
+				}
+            } else {
+                log.warn("Failed to get good response for user "+ userUuid+ " for "+ mainUrl+ " got "+ responseCode);
+            }
+        } catch (MalformedURLException e) {
+            log.info ("Invalid URL for user: "+ userUuid+ " of: "+ mainUrl);
+        } catch (IOException e) {
+            log.warn("Failed to download image for: "+ userUuid+ " from: "+ mainUrl+ " error of: "+ e.getMessage());
+        } finally {
+            if (inputStream != null) {
+                try {
+                    inputStream.close();
+                } catch (IOException ioe) {
+                    log.info("Failed to close input stream for request to: "+ mainUrl);
+                }
+            }
+        }
+    }
+
+
+
 	
 	//method to convert profileImages
 	private void convertProfile() {
