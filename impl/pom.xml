@@ -53,6 +53,10 @@
       		<artifactId>commons-lang</artifactId>
       		<scope>provided</scope>
    		</dependency> 
+   		<dependency>
+   			<groupId>commons-io</groupId>
+   			<artifactId>commons-io</artifactId>
+   		</dependency>
 		<dependency>
 			<groupId>org.sakaiproject</groupId>
 			<artifactId>generic-dao</artifactId>

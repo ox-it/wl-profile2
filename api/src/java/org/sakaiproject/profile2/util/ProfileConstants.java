@@ -213,6 +213,7 @@ public class ProfileConstants {
 	public static final boolean SAKAI_PROP_PROFILE2_IMPORT_ENABLED = false; //profile2.import
 	public static final boolean SAKAI_PROP_PROFILE2_PROFILE_FIELDS_ENABLED = true; //profile2.profile.fields.enabled
 	public static final boolean SAKAI_PROP_PROFILE2_PROFILE_STATUS_ENABLED = true; //profile2.profile.status.enabled
+	public static final boolean SAKAI_PROP_PROFILE2_IMPORT_IMAGES_ENABLED = false; // profile2.import.images
 
 	
 	/*
