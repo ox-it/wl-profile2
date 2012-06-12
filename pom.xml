@@ -5,7 +5,7 @@
 	<name>Profile2</name>
 	<groupId>org.sakaiproject.profile2</groupId>
 	<artifactId>profile2</artifactId>
-	<version>1.4.10-SNAPSHOT</version>
+	<version>1.4.10ox1-SNAPSHOT</version>
     <packaging>pom</packaging>
 	
 	<parent>
@@ -223,12 +223,15 @@
         </repository>
 	</repositories>
 	
-	<distributionManagement>
-        <site>
-            <id>sakai-site</id>
-            <name>Sakai release Site</name>
-            <url>scpexe://source.sakaiproject.org/var/www/html/release/profile2/${project.version}</url>
-        </site>
+    <distributionManagement>
+        <repository>
+            <id>maven-repo.oucs</id>
+            <url>https://maven-repo.oucs.ox.ac.uk/content/repositories/releases</url>
+        </repository>
+        <snapshotRepository>
+            <id>maven-repo.oucs</id>
+            <url>https://maven-repo.oucs.ox.ac.uk/content/repositories/snapshots</url>
+        </snapshotRepository>
     </distributionManagement>
 	    
     <properties>
@@ -400,10 +403,9 @@
     </issueManagement>
     
     <scm>
-    	<connection>scm:svn:https://source.sakaiproject.org/svn/profile2/branches/profile2-1.4.x</connection>
-    	<developerConnection>scm:svn:https://source.sakaiproject.org/svn/profile2/branches/profile2-1.4.x</developerConnection>
-    	<url>https://source.sakaiproject.org/svn/profile2/branches/profile2-1.4.x</url>
-  	</scm>
+        <connection>scm:git:git://git-repo.oucs.ox.ac.uk/git/repos/local-version/profile2.git</connection>
+        <developerConnection>scm:git:ssh://git-repo.oucs.ox.ac.uk/~git/repos/local-version/profile2.git</developerConnection>
+    </scm>
     
 	<pluginRepositories>
 		<pluginRepository>
