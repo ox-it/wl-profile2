@@ -21,6 +21,7 @@ import java.awt.Image;
 import java.awt.RenderingHints;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -30,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -37,6 +39,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 
 import org.apache.commons.lang.StringEscapeUtils;
@@ -44,6 +47,7 @@ import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.WordUtils;
 import org.apache.log4j.Logger;
+import org.imgscalr.Scalr;
 import org.sakaiproject.util.FormattedText;
 import org.sakaiproject.util.ResourceLoader;
 
@@ -86,70 +90,57 @@ public class ProfileUtils {
 	 * @param imageData		bytes of the original image
 	 * @param maxSize		maximum dimension in px that the image should have on any one side
 	 */
-	public static byte[] scaleImage(byte[] imageData, int maxSize) {
+	public static byte[] scaleImage(byte[] imageData, int maxSize, String mimeType) {
 	
-	    log.debug("Scaling image..."); 
-	
-	    // Get the image 
-	    Image inImage = new ImageIcon(imageData).getImage();
-	
-	    // Determine the scale (we could change this to only determine scale from one dimension, ie the width only?)
-	    double scale = (double) maxSize / (double) inImage.getHeight(null);
-	    if (inImage.getWidth(null) > inImage.getHeight(null)) {
-	        scale = (double) maxSize / (double) inImage.getWidth(null);
-	    }
-	    
-	    /*
-	    log.debug("===========Image scaling============");
-	    log.debug("WIDTH: " + inImage.getWidth(null));
-	    log.debug("HEIGHT: " + inImage.getHeight(null));
-	    log.debug("SCALE: " + scale);
-	    log.debug("========End of image scaling========");
-	    */
-	
-	    //if image is smaller than desired image size (ie scale is larger) just return the original image bytes
-	    if (scale >= 1.0d) {
-	    	return imageData;
-	    }
-	    
-	    
-	
-	    // Determine size of new image.
-	    // One of the dimensions should equal maxSize.
-	    int scaledW = (int) (scale * inImage.getWidth(null));
-	    int scaledH = (int) (scale * inImage.getHeight(null));
-	
-	    // Create an image buffer in which to paint on.
-	    BufferedImage outImage = new BufferedImage(scaledW, scaledH, BufferedImage.TYPE_INT_RGB);
-	
-	    // Set the scale.
-	    AffineTransform tx = new AffineTransform();
-	
-	    //scale
-	    tx.scale(scale, scale);
-	
-	    // Paint image.
-	    Graphics2D g2d = outImage.createGraphics();
-	    g2d.setRenderingHint(
-	            RenderingHints.KEY_ANTIALIASING,
-	            RenderingHints.VALUE_ANTIALIAS_ON
-	        );
-	    g2d.drawImage(inImage, tx, null);
-	    g2d.dispose();
-	
-	    // JPEG-encode the image
-	    // and write to file.
-	    ByteArrayOutputStream os = new ByteArrayOutputStream();
-	    try { 
-	    	JPEGImageEncoder encoder = JPEGCodec.createJPEGEncoder(os);
-	    	encoder.encode(outImage);
-	    	os.close();
-	    	log.debug("Scaling done."); 
-	    } catch (IOException e) {
-	    	log.error("Scaling image failed."); 
-	    }
-	    return os.toByteArray();
+        byte[] scaledImageBytes = null;
+		ByteArrayInputStream in = new ByteArrayInputStream(imageData);
+        try {
+                //convert original image to inputstream
+                
+                //original buffered image
+                BufferedImage originalImage = ImageIO.read(in);
+                
+                //scale the image using the imgscalr library
+                BufferedImage scaledImage = Scalr.resize(originalImage, maxSize);
+                
+                //convert BufferedImage to byte array
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                ImageIO.write(scaledImage, getInformalFormatForMimeType(mimeType), baos);
+                baos.flush();
+                scaledImageBytes = baos.toByteArray();
+                baos.close();
+                
+        } catch (Exception e) {
+                log.error("Scaling image failed.", e);
+        } finally {
+        	if (in != null) {
+        		try {
+        			in.close();
+        		} catch (IOException e) {} //Ignore
+        	}
+        }
+        
+        return scaledImageBytes;
+
 	}
+	
+    public static String getInformalFormatForMimeType(String mimeType){
+        Map<String,String> formats = new HashMap<String,String>();
+        formats.put("image/jpeg", "jpg");
+        formats.put("image/gif", "gif");
+        formats.put("image/png", "png");
+        formats.put("image/x-png", "png");
+        formats.put("image/pjpeg", "jpg");
+        formats.put("image/jpg", "jpg");
+        
+        String format = formats.get(mimeType);
+        
+        if(format != null) {
+                return format;
+        }
+        return "jpg";
+}
+
 	
 	/**
 	 * Convert a Date into a String according to format
