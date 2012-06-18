@@ -273,6 +273,9 @@ public class ProfileConverter {
             log.info ("Invalid URL for user: "+ userUuid+ " of: "+ mainUrl);
         } catch (IOException e) {
             log.warn("Failed to download image for: "+ userUuid+ " from: "+ mainUrl+ " error of: "+ e.getMessage());
+        } catch (Exception e) {
+            // Things like IllegalArgumentException when parsing URL.
+            log.warn("Failed for user: "+ userUuid+ " of: "+ mainUrl+ " with error of: "+ e.getMessage());
         } finally {
             if (inputStream != null) {
                 try {
