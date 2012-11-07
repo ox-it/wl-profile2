@@ -230,7 +230,6 @@ public class ProfileContentProducer implements EntityContentProducer {
 		String type = parts[1];
 		String id = parts[2];
 
-		/*
 		if ("profile".equals(type)) {
 			try {
 				UserProfile profile = profileLogic.getUserProfile(id);
@@ -240,7 +239,6 @@ public class ProfileContentProducer implements EntityContentProducer {
 						+ id + "'", e);
 			}
 		}
-		*/
 
 		return null;
 	}
